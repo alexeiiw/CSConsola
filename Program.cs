@@ -9,6 +9,7 @@ using System.Net.Mail;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics; 
 
 namespace Monitoreo
 {
@@ -23,6 +24,11 @@ namespace Monitoreo
             {
                 // Se ejecutara cada 15 minutos para verificar si la interfaz esta funcionando
                 Thread.Sleep(900000);
+                //Thread.Sleep(300000);
+
+                GenerarForecastSISCON(ref salir);
+
+                EjecutarEnvioCorreosLecturas(ref salir); 
 
                 RealizarMonitoreoSISCON(ref salir);
 
@@ -62,8 +68,8 @@ namespace Monitoreo
 
             if (dt.Rows.Count > 0)
             {
-                Console.WriteLine("Se ha detenido la interfaz SIFCO");
-                EnviarCorreoInternos("aarrecis@canella.com.gt","La interfaz se ha detenido por favor verificar", "Alerta de Interfaz SAP - SIFCO");
+                Console.WriteLine("La interfaz se ha detenido por favor verificar " + "Alerta de Interfaz SAP - SIFCO");
+                EnviarCorreoInternos("aarrecis@canella.com.gt","La interfaz se ha detenido por favor verificar ", "Alerta de Interfaz SAP - SIFCO");
                 salir = true;
             }
             else
@@ -100,8 +106,8 @@ namespace Monitoreo
 
             if (dt.Rows.Count > 0)
             {
-                Console.WriteLine("Existen retiros que no se actualizaron en SAP");
-                EnviarCorreoInternos("aarrecis@canella.com.gt","Existen retiros que no se actualizaron en SAP", "Alerta de Retiros SISCON");
+                Console.WriteLine("Existen retiros que no se actualizaron en SAP " + "Alerta de Retiros SISCON");
+                EnviarCorreoInternos("aarrecis@canella.com.gt","Existen retiros que no se actualizaron en SAP ", "Alerta de Retiros SISCON");
                 salir = true;
             }
             else
@@ -134,8 +140,8 @@ namespace Monitoreo
 
             if (dt.Rows.Count > 0)
             {
-                Console.WriteLine("Existen despachos que no generan ordenes de venta en SAP");
-                EnviarCorreoInternos("aarrecis@canella.com.gt","Existen despachos que no generan ordenes de venta en SAP", "Alerta de Despachos SISCON");
+                Console.WriteLine("Existen despachos que no generan ordenes de venta en SAP " + "Alerta de Despachos SISCON");
+                EnviarCorreoInternos("aarrecis@canella.com.gt","Existen despachos que no generan ordenes de venta en SAP ", "Alerta de Despachos SISCON");
                 salir = true;
             }
             else
@@ -180,14 +186,75 @@ namespace Monitoreo
 
             if (dt.Rows.Count > 0)
             {
-                Console.WriteLine("Existen despachos que no crearon articulos en los Contratos de SISCON y tampoco estan actualizados en AF SAP");
-                EnviarCorreoInternos("aarrecis@canella.com.gt","Existen despachos que no crearon articulos en los Contratos de SISCON", "Alerta de Despachos SISCON");
+                Console.WriteLine("Existen despachos que no crearon articulos en los Contratos de SISCON y tampoco estan actualizados en AF SAP " + "Alerta de Despachos SISCON");
+                EnviarCorreoInternos("aarrecis@canella.com.gt","Existen despachos que no crearon articulos en los Contratos de SISCON y tampoco estan actualizados en AF SAP ", "Alerta de Despachos SISCON");
                 salir = true;
             }
             else
             {
                 Console.WriteLine("Los despachos SISCON y su relación en Contratos estan funcionando correctamente");
             }
+        }
+
+        static private void GenerarForecastSISCON(ref bool salir)
+        {
+            string connStringUtil;
+
+            connStringUtil = "data source=128.1.200.167;initial catalog=Canella_SISCON;persist security info=True;user id=usrsap;password=C@nella20$";
+
+            string query = "select fecha_generado from REP_CONTRATOS_FORECAST";
+
+            DataTable dt = new DataTable();
+
+            using (SqlConnection connUtil = new SqlConnection(connStringUtil))
+            {
+                using (SqlDataAdapter da = new SqlDataAdapter(query, connUtil))
+                {
+                    connUtil.Open();
+
+                    da.Fill(dt);
+
+                    connUtil.Close();
+                }
+            }
+            
+            // Obtiene la última fecha de generación del insumo y lo compara con la fecha actual
+            int intCompara = DateTime.Compare(DateTime.Today, Convert.ToDateTime(dt.Rows[0]["fecha_generado"]));
+
+            // Si es más tarde
+            if (intCompara > 0)
+            {
+                try
+                {
+                    using (SqlConnection connUtil = new SqlConnection(connStringUtil)) 
+                    {
+                        using (SqlCommand cmd = new SqlCommand("Generar_REP_CONTRATOS_FORECAST", connUtil))    
+                        {
+                            cmd.CommandType = CommandType.StoredProcedure;
+                            cmd.CommandTimeout = 600;
+
+                            connUtil.Open();
+
+                            cmd.ExecuteNonQuery();
+
+                            connUtil.Close();
+                        }
+                    }
+
+                    Console.WriteLine("Se ha generado de forma correcta el reporte para Forecast SISCON " + "Información de Generación - SISCON");
+
+                    EnviarCorreoInternos("aarrecis@canella.com.gt","Se ha generado de forma correcta el reporte para Forecast SISCON ", "Información de Generación - SISCON");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+
+                    EnviarCorreoInternos("aarrecis@canella.com.gt",e.ToString(), "Alerta de Generación Reporte Forecast - SISCON");
+
+                    salir = true;
+                }
+            }
+            else { Console.WriteLine("No es necesario generar el reporte de Forecast " + "Información de Generación - SISCON"); }
         }
 
         static private void RealizarMonitoreoSISCON(ref bool salir)
@@ -208,8 +275,8 @@ namespace Monitoreo
             // Realiza la validación, verifica que al menos el archivo se haya modificado en los ultimos 5 minutos
             if (objTiempo.Minutes > 5)
             {
-                Console.WriteLine("Se ha detenido la interfaz SISCON");
-                EnviarCorreoInternos("aarrecis@canella.com.gt","La interfaz se ha detenido por favor verificar", "Alerta de Interfaz SAP - Activos Fijos");
+                Console.WriteLine("La interfaz se ha detenido por favor verificar " + "Alerta de Interfaz SAP - Activos Fijos");
+                EnviarCorreoInternos("aarrecis@canella.com.gt","La interfaz se ha detenido por favor verificar ", "Alerta de Interfaz SAP - Activos Fijos");
                 salir = true;
             }
             else
@@ -218,7 +285,91 @@ namespace Monitoreo
             }
         }
 
-        public static void EnviarCorreoInternos(string ToMail, string BodyMail, string SubjectMail)
+        private static void EjecutarEnvioCorreosLecturas(ref bool salir)
+        {
+            string connStringLecturas;
+
+            connStringLecturas = "data source=128.1.200.167;initial catalog=Lecturas;persist security info=True;user id=usrsap;password=C@nella20$";
+
+            string query = "select Valor from LECT_Configuracion where Nombre = 'Fecha_Generado'";
+
+            DataTable dt = new DataTable();
+
+            using (SqlConnection connLecturas = new SqlConnection(connStringLecturas))
+            {
+                using (SqlDataAdapter da = new SqlDataAdapter(query, connLecturas))
+                {
+                    connLecturas.Open();
+
+                    da.Fill(dt);
+
+                    connLecturas.Close();
+                }
+            }
+
+            // Obtiene la última fecha de generación del insumo y lo compara con la fecha actual
+            int intCompara = DateTime.Compare(DateTime.Today, Convert.ToDateTime(dt.Rows[0]["valor"]));
+
+            // Si es más tarde
+            if (intCompara > 0)
+            {
+                Process myProcess = new Process();
+
+                try
+                {
+                    myProcess.StartInfo.UseShellExecute = false;
+                    // You can start any process, HelloWorld is a do-nothing example.
+                    myProcess.StartInfo.FileName = "e:\\LecturasRPT\\ServicioTecnicoReporte.exe";
+                    myProcess.StartInfo.CreateNoWindow = true;
+                    myProcess.Start();
+                    // This code assumes the process you are starting will terminate itself.
+                    // Given that is is started without a window so you cannot terminate it
+                    // on the desktop, it must terminate itself or you can do it programmatically
+                    // from this application using the Kill method.
+
+                    Console.WriteLine("Se ha generado en un hilo diferente el envío de correos y archivos - LECTURAS");
+
+                    ActualizarFechaCorreoLecturas();
+
+                    EnviarCorreoInternos("aarrecis@canella.com.gt","Se ha generado de forma correcta el proceso para correos y archivos de LECTURAS ", "Información de Generación - LECTURAS");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+
+                    EnviarCorreoInternos("aarrecis@canella.com.gt",e.ToString(), "Alerta de Generación Proceso Correos y Archivos - LECTURAS");
+
+                    salir = true;
+                }        
+            }
+            else { Console.WriteLine("No es necesario generar el proceso de envío de correos de Lecturas " + "Información de Generación - LECTURAS"); }
+        }
+
+        private static void ActualizarFechaCorreoLecturas()
+        {
+            string connStringLecturas;
+
+            connStringLecturas = "data source=128.1.200.167;initial catalog=Lecturas;persist security info=True;user id=usrsap;password=C@nella20$";
+
+            using (SqlConnection connLecturas = new SqlConnection(connStringLecturas))
+            {
+                connLecturas.Open();
+
+                SqlCommand command = connLecturas.CreateCommand();
+
+                command.Connection = connLecturas;
+
+                string strUpdate = "update LECT_Configuracion set Valor = GETDATE() where Nombre = 'Fecha_Generado'";
+                
+                command.CommandText = strUpdate;
+
+                command.ExecuteNonQuery();
+
+                connLecturas.Close();
+            }
+        }
+
+        private static void EnviarCorreoInternos(string ToMail, string BodyMail, string SubjectMail)
         {
             string ServidorCorreoCanella = "srv-ex2010";
 
