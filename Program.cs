@@ -39,8 +39,46 @@ namespace Monitoreo
                 RealizarMonitoreoSISCONRetiros(ref salir);
 
                 RealizarMonitoreoSISCONDespachosNoContratos(ref salir);
+
+                RealizarMonitoreoSISCONInconsistencias(ref salir);
             }
             while (salir == false);
+        }
+
+        static private void RealizarMonitoreoSISCONInconsistencias(ref bool salir)
+        {
+            string connStringUtil;
+
+            connStringUtil = "data source=128.1.200.167;initial catalog=Canella_SISCON;persist security info=True;user id=usrsap;password=C@nella20$";
+
+            string query = @"select itemcode from SBO_CANELLA.dbo.OITM where U_Condicion = 'D' and itemcode in 
+                            (select assetid_sap from COT_CONTRATOS_DET_DESPACHO where ESTATUS_ARTICULO = 1)
+                            and ItemCode <> '1' order by ItemCode";
+
+            DataTable dt = new DataTable();
+
+            using (SqlConnection connUtil = new SqlConnection(connStringUtil))
+            {
+                using (SqlDataAdapter da = new SqlDataAdapter(query, connUtil))
+                {
+                    connUtil.Open();
+
+                    da.Fill(dt);
+
+                    connUtil.Close();
+                }
+            }
+
+            if (dt.Rows.Count > 0)
+            {
+                Console.WriteLine("Hay incosistencia de datos SISCON versus SAP " + "Alerta Inconsistencias de datos SISCON");
+                EnviarCorreoInternos("aarrecis@canella.com.gt","Hay incosistencia de datos SISCON versus SAP ", "Alerta Inconsistencias de datos SISCON");
+                salir = true;
+            }
+            else
+            {
+                Console.WriteLine("No hay incosistencia de datos SISCON versus SAP");
+            }
         }
 
         static private void RealizarMonitoreoSIFCO(ref bool salir)
@@ -331,7 +369,7 @@ namespace Monitoreo
 
                     ActualizarFechaCorreoLecturas();
 
-                    EnviarCorreoInternos("aarrecis@canella.com.gt","Se ha generado de forma correcta el proceso para correos y archivos de LECTURAS ", "Información de Generación - LECTURAS");
+                    EnviarCorreoInternos("aarrecis@canella.com.gt","Se ha iniciado el proceso para envío de  correos y archivos de LECTURAS ", "Información de Generación - LECTURAS");
                 }
                 catch (Exception e)
                 {

@@ -1,7 +1,7 @@
 C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\bin\Debug\Monitoreo.exe.config
 C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\bin\Debug\Monitoreo.exe
 C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\bin\Debug\Monitoreo.pdb
-C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\obj\Debug\Monitoreo.csprojAssemblyReference.cache
 C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\obj\Debug\Monitoreo.csproj.CoreCompileInputs.cache
 C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\obj\Debug\Monitoreo.exe
 C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\obj\Debug\Monitoreo.pdb
+C:\Users\infoagarcia\Documents\Canella\Proyectos\Monitoreo\Monitoreo\obj\Debug\Monitoreo.csproj.AssemblyReference.cache
